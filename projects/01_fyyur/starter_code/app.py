@@ -5,64 +5,56 @@
 import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify, abort
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+# My imports below
+from flask_migrate import Migrate
+from sqlalchemy.orm import backref # see: https://stackoverflow.com/questions/26475977/flask-sqlalchemy-adjacency-list-backref-error
+from models import db, Venue, Artist, Show, init_db # from models.py
+from enums import *
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
 
 app = Flask(__name__)
 moment = Moment(app)
-app.config.from_object('config')
-db = SQLAlchemy(app)
+
+db = init_db(app)
+#app.config.from_object('config')
+#db = SQLAlchemy(app) #comes from models.py
+#db.init(app)
+#migrate = Migrate(app, db)
+
 
 # TODO: connect to a local postgresql database
 
+# ? HOW TO USE MIGRATION in the cmd line <<< NOTE TO MY SELF :) >>>
+#--> use [ flask db init ] to create a migration
+#--> use [ flask db migrate ] to sync models
+#--> use [ flask db upgrade ] and [ flask db downgrade ] to upgrade & downgrade versions of migrations
+
+# TODO: connect to a local postgresql database ✅
 #----------------------------------------------------------------------------#
-# Models.
+# Models ---> MOVED TO models.py file
 #----------------------------------------------------------------------------#
 
-class Venue(db.Model):
-    __tablename__ = 'Venue'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    address = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
 
 def format_datetime(value, format='medium'):
-  date = dateutil.parser.parse(value)
+  if isinstance(value, str):
+     date = dateutil.parser.parse(value)
+  else:
+     date = value
   if format == 'full':
       format="EEEE MMMM, d, y 'at' h:mma"
   elif format == 'medium':

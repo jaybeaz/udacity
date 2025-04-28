@@ -10,4 +10,6 @@ DEBUG = True
 
 
 # TODO IMPLEMENT DATABASE URL
-SQLALCHEMY_DATABASE_URI = '<Put your local database url>'
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/fyurr'
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+TEMPLATES_AUTO_RELOAD = True
