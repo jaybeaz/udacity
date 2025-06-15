@@ -1,18 +1,23 @@
 import enum
 
 class GenreTypes(enum.Enum):
-   CLASSICAL = 'Classical'
-   COUNTRY = 'Country'
-   POP = 'Pop'
-   FOLK = 'Folk'
-   HIPHOP = 'Hip-Hop'
-   RAP = 'Rap'
-   RANDB = 'R&B'
-   REGGAE = 'Reggae'
-   ROCK = 'Rock'
-   SWING = 'Swing'
-   SOUL = 'Soul'
-   OTHER = 'Other'
+    CLASSICAL = 'Classical'
+    COUNTRY = 'Country'
+    POP = 'Pop'
+    FOLK = 'Folk'
+    HIPHOP = 'Hip-Hop'
+    RAP = 'Rap'
+    RANDB = 'R&B'
+    REGGAE = 'Reggae'
+    ROCK = 'Rock'
+    SWING = 'Swing'
+    SOUL = 'Soul'
+    OTHER = 'Other'
+
+    @classmethod
+    def choices(cls):
+        """ Methods decorated with @classmethod can be called statically without having an instance of the class."""
+        return [(choice.name, choice.value) for choice in cls]
 
 class StateTypes(enum.Enum):
     AL = 'AL'
@@ -66,3 +71,7 @@ class StateTypes(enum.Enum):
     WV='WV'
     WI='WI'
     WY='WY'
+
+    @classmethod
+    def choices(cls):
+        return [(choice.name, choice.value) for choice in cls]
