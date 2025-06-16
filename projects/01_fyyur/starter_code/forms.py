@@ -1,7 +1,10 @@
 from datetime import datetime
+from dateutil.parser import parse
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL, Optional, Regexp
+from wtforms.validators import DataRequired, AnyOf, URL, Optional, Regexp, ValidationError
+import re
+from urllib.parse import urlparse
 
 # from flask_wtf import Form as ActualFlaskWTFFormClass
 # from wtforms import Form as ActualWTFormsBaseClass
@@ -14,6 +17,67 @@ from wtforms.validators import DataRequired, AnyOf, URL, Optional, Regexp
 # print(f"Is ActualFlaskWTFFormClass the same as ActualWTFormsBaseClass: {ActualFlaskWTFFormClass is ActualWTFormsBaseForm}")
 # print(f"---------------------------")
 
+def is_valid_phone(form, field):
+    """
+    Custom validator for phone numbers. Strips common non-digit characters
+    and checks if the length is between 10 and 15 digits.
+    """
+    if not field.data:
+        return # Allow empty phone numbers
+        
+    phone_number = re.sub(r'[()\s-]', '', field.data)
+
+    if not phone_number.isdigit() or not (10 <= len(phone_number) <= 15):
+        raise ValidationError("Invalid phone number. Please use a valid format like xxx-xxx-xxxx.")
+
+
+def is_valid_url(form, field):
+    """
+    Custom validator for URLs. Allows URLs without a scheme (http/https).
+    """
+    if not field.data:
+        return # Allow empty URLs
+
+    url_text = field.data
+    # Prepend http:// if no scheme is present
+    if not url_text.lower().startswith(('http://', 'https://')):
+        url_text = 'http://' + url_text
+    
+    try:
+        # urlparse will check for basic structural validity
+        result = urlparse(url_text)
+        if not all([result.scheme, result.netloc]):
+            raise ValidationError('Invalid URL format.')
+    except:
+        raise ValidationError('Invalid URL format.')
+
+
+class FlexibleDateTimeField(DateTimeField):
+    """
+    Helper custome DateTimeField that parses flexible date/time formats
+    and defaults to 10 PM if no time is provided.
+    """
+    def process_formdata(self, valuelist):
+        if valuelist:
+            date_str = " ".join(valuelist).strip()
+            if not date_str:
+                self.data = None
+                return
+
+            try:
+                # Use dateutil.parser to understand most formats
+                parsed_datetime = parse(date_str)
+                
+                # If the parser defaults time to midnight, the user likely only entered a date.
+                # The 'default_hour' and 'default_minute' attributes from dateutil.parser.parse
+                # are not straightforward to check, so we check the result.
+                if parsed_datetime.hour == 0 and parsed_datetime.minute == 0 and parsed_datetime.second == 0:
+                    # User likely only provided a date, so set default time to 10 PM.
+                    self.data = parsed_datetime.replace(hour=22, minute=0, second=0)
+                else:
+                    self.data = parsed_datetime
+            except (ValueError, TypeError):
+                self.data = None
 
 class ShowForm(FlaskForm):
     artist_id = StringField(
@@ -24,7 +88,7 @@ class ShowForm(FlaskForm):
         'venue_id',
         validators=[DataRequired()]
     )
-    start_time = DateTimeField(
+    start_time = FlexibleDateTimeField(
         'start_time',
         validators=[DataRequired()],
         default= datetime.today()
@@ -98,12 +162,10 @@ class VenueForm(FlaskForm):
     )
     phone = StringField(
         'phone',
-        validators=[Optional(), 
-            Regexp(r'^\d{3}-\d{3}-\d{4}$', 
-            message="Phone number must be in xxx-xxx-xxxx format.")]
+        validators=[Optional(), is_valid_phone]
     )
     image_link = StringField(
-        'image_link', validators=[URL()]
+        'image_link', validators=[Optional(), is_valid_url]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -131,10 +193,10 @@ class VenueForm(FlaskForm):
         ]
     )
     facebook_link = StringField(
-        'facebook_link', validators=[Optional(), URL()]
+        'facebook_link', validators=[Optional(), is_valid_url]
     )
     website_link = StringField(
-        'website_link', validators=[URL()]
+        'website_link', validators=[Optional(), is_valid_url]
     )
 
     seeking_talent = BooleanField( 'seeking_talent' )
@@ -211,12 +273,10 @@ class ArtistForm(FlaskForm):
     phone = StringField(
         # TODO implement validation logic for phone (DONE)
         'phone', 
-        validators=[Optional(), 
-                    Regexp(r'^\d{3}-\d{3}-\d{4}$', 
-                    message="Phone number must be in xxx-xxx-xxxx format.")]
+        validators=[Optional(), is_valid_phone]
     )
     image_link = StringField(
-        'image_link', validators=[URL()]
+        'image_link', validators=[Optional(), is_valid_url]
     )
     genres = SelectMultipleField(
         'genres', validators=[DataRequired()],
@@ -244,11 +304,11 @@ class ArtistForm(FlaskForm):
      )
     facebook_link = StringField(
         # TODO implement enum restriction
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[Optional(), is_valid_url]
      )
 
     website_link = StringField(
-        'website_link', validators=[URL()]
+        'website_link', validators=[Optional(), is_valid_url]
      )
 
     seeking_venue = BooleanField( 'seeking_venue' )
