@@ -195,8 +195,8 @@ class VenueForm(FlaskForm):
     facebook_link = StringField(
         'facebook_link', validators=[Optional(), is_valid_url]
     )
-    website_link = StringField(
-        'website_link', validators=[Optional(), is_valid_url]
+    website = StringField(
+        'website', validators=[Optional(), is_valid_url]
     )
 
     seeking_talent = BooleanField( 'seeking_talent' )
